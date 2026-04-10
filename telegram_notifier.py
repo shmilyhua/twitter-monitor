@@ -5,9 +5,9 @@ import time
 from datetime import datetime, timezone
 from typing import List, Union
 
-import telegram
+import telebot
+from telebot.apihelper import ApiTelegramException
 from retry import retry
-from telegram.error import BadRequest, RetryAfter, TimedOut, NetworkError
 
 from notifier_base import Message, NotifierBase
 
@@ -29,7 +29,7 @@ class TelegramNotifier(NotifierBase):
     @classmethod
     def init(cls, token: str, logger_name: str):
         assert token
-        cls.bot = telegram.Bot(token=token, request=telegram.utils.request.Request(con_pool_size=2))
+        cls.bot = telebot.TeleBot(token)
         cls.logger = logging.getLogger('{}'.format(logger_name))
         updates = cls._get_updates()
         cls.update_offset = updates[-1].update_id + 1 if updates else None
@@ -37,7 +37,7 @@ class TelegramNotifier(NotifierBase):
         super().init()
 
     @classmethod
-    @retry((RetryAfter, TimedOut, NetworkError), delay=10, tries=10)
+    @retry(Exception, delay=10, tries=10)
     def _send_message_to_single_chat(cls, chat_id: str, text: str, photo_url_list: Union[List[str], None],
                                      video_url_list: Union[List[str], None]):
         if video_url_list:
@@ -46,9 +46,9 @@ class TelegramNotifier(NotifierBase):
             if len(photo_url_list) == 1:
                 cls.bot.send_photo(chat_id=chat_id, photo=photo_url_list[0], caption=text, timeout=60)
             else:
-                media_group = [telegram.InputMediaPhoto(media=photo_url_list[0], caption=text)]
+                media_group = [telebot.types.InputMediaPhoto(media=photo_url_list[0], caption=text)]
                 for photo_url in photo_url_list[1:10]:
-                    media_group.append(telegram.InputMediaPhoto(media=photo_url))
+                    media_group.append(telebot.types.InputMediaPhoto(media=photo_url))
                 cls.bot.send_media_group(chat_id=chat_id, media=media_group, timeout=60)
         else:
             cls.bot.send_message(chat_id=chat_id, text=text, disable_web_page_preview=True, timeout=60)
@@ -60,28 +60,21 @@ class TelegramNotifier(NotifierBase):
         for chat_id in message.chat_id_list:
             try:
                 cls._send_message_to_single_chat(chat_id, message.text, message.photo_url_list, message.video_url_list)
-            except BadRequest as e:
-                # Telegram cannot send some photos/videos for unknown reasons.
+            except ApiTelegramException as e:
                 cls.logger.error('{}, trying to send message without media.'.format(e))
                 cls._send_message_to_single_chat(chat_id, message.text, None, None)
 
     @classmethod
-    @retry((RetryAfter, TimedOut, NetworkError), delay=60)
-    def _get_updates(cls, offset=None) -> List[telegram.Update]:
+    @retry(Exception, delay=60)
+    def _get_updates(cls, offset=None) -> List[telebot.types.Update]:
         return cls.bot.get_updates(offset=offset)
 
     @classmethod
-    def _get_new_updates(cls) -> List[telegram.Update]:
+    def _get_new_updates(cls) -> List[telebot.types.Update]:
         updates = cls._get_updates(offset=cls.update_offset)
         if updates:
             cls.update_offset = updates[-1].update_id + 1
         return updates
-
-    @staticmethod
-    def _get_new_update_offset(updates: List[telegram.Update]) -> Union[int, None]:
-        if not updates:
-            return None
-        return updates[-1].update_id + 1
 
     @classmethod
     def confirm(cls, message: TelegramMessage) -> bool:
@@ -90,14 +83,20 @@ class TelegramNotifier(NotifierBase):
         message.text = '{}\nPlease reply Y/N'.format(message.text)
         cls.put_message_into_queue(message)
         sending_time = datetime.now(timezone.utc)
+        
         while True:
             for update in cls._get_new_updates():
                 received_message = update.message
-                if received_message.date < sending_time:
+                if not received_message:
+                    continue
+                
+                message_date = datetime.fromtimestamp(received_message.date, timezone.utc)
+                if message_date < sending_time:
                     continue
                 if received_message.chat.id not in message.chat_id_list:
                     continue
-                text = received_message.text.upper()
+                
+                text = (received_message.text or '').upper()
                 if text == 'Y':
                     return True
                 if text == 'N':
@@ -112,11 +111,16 @@ class TelegramNotifier(NotifierBase):
             while True:
                 for update in cls._get_new_updates():
                     received_message = update.message
-                    if received_message.date < starting_time:
+                    if not received_message:
+                        continue
+                    
+                    message_date = datetime.fromtimestamp(received_message.date, timezone.utc)
+                    if message_date < starting_time:
                         continue
                     if received_message.chat.id != chat_id:
                         continue
-                    text = received_message.text.upper()
+                    
+                    text = (received_message.text or '').upper()
                     if text == 'EXIT':
                         if cls.confirm(TelegramMessage([chat_id], 'Do you want to exit the program?')):
                             cls.put_message_into_queue(TelegramMessage([chat_id], 'Program will exit after 5 sec.'))
@@ -129,6 +133,5 @@ class TelegramNotifier(NotifierBase):
 
 
 def send_alert(token: str, chat_id: int, message: str):
-    # The telegram notifier may also be wrong, so initialize the telegram bot separately.
-    bot = telegram.Bot(token=token)
+    bot = telebot.TeleBot(token)
     bot.send_message(chat_id=chat_id, text=message, timeout=60)
