@@ -49,7 +49,7 @@ uv sync
   3. Verify whether the tokens can be used by running:
 
   ```bash
-      uv run main.py check-tokens
+  uv run main.py check-tokens
   ```
 
 \* Edit `config/monitoring.json`:
@@ -63,32 +63,32 @@ uv sync
   3. Verify if your Telegram token and chat ID are correct by running:
 
   ```bash
-      uv run main.py check-tokens --telegram_chat_id {your_chat_id}
+  uv run main.py check-tokens --telegram_chat_id {your_chat_id}
   ```
 
-  ### Run
+### Run
 
-  Start the monitoring process:
+Start the monitoring process:
 
-  ```bash
+```bash
 
-  uv run main.py run
+uv run main.py run
 
-  ```
+ ```
 
 |Flag|Default|Description|
 |:-:|:-:|:-:|
 |--interval|15|Monitor run interval|
 |--confirm|False|Confirm with the maintainer during initialization|
-|--listen\\\_exit\\\_command|False|Listen for the "exit" command from telegram maintainer chat id|
-|--send\\\_daily\\\_summary|False|Send daily summary to telegram maintainer|
+|--listen_exit_command|False|Listen for the "exit" command from telegram maintainer chat id|
+|--send_daily_summary|False|Send daily summary to telegram maintainer|
 
 ## Contact me
 
-Telegram: \[@ionic\\\_bond](https://t.me/ionic\_bond)
+Telegram: [@ionic_bond](https://t.me/ionic_bond)
 
 ## Donate
 
-\[PayPal Donate](https://www.paypal.com/donate/?hosted\_button\_id=D5DRBK9BL6DUA) or \[PayPal](https://paypal.me/ionicbond3)
+[PayPal Donate](https://www.paypal.com/donate/?hosted_button_id=D5DRBK9BL6DUA) or [PayPal](https://paypal.me/ionicbond3)
 
 
