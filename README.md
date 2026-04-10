@@ -1,92 +1,97 @@
 # Twitter Monitor
 
-Monitor the `following`, `tweet`, ~~`like`~~ and `profile` of a Twitter user and send the changes to the telegram channel.
+Monitor the `tweet` and `profile` updates of an X (formerly Twitter) user and send real-time alerts to a Telegram channel.
 
-Data is crawled from Twitter web’s GraphQL API.
-
-(Due to the unstable return results of Twitter Web's `following` API, accounts with more than 100 followings are not recommended to use `following` monitor.)
+Data is crawled directly from the X Web GraphQL API.
 
 ## Deployed channel sample
 
-https://t.me/twitter_monitor_menu
+https://t.me/twitter\_monitor\_menu
 
 ## Usage
 
 ### Setup
 
-(Requires **python >= 3.10**)
+(Requires **uv**)
 
-Clone code and install dependent pip packages
+Clone the repository and install dependencies using `uv` to automatically manage the virtual environment and `pyproject.toml` packages.
 
 ```bash
-git clone https://github.com/ionic-bond/twitter-monitor.git
+git clone \\\[https://github.com/ionic-bond/twitter-monitor.git](https://github.com/ionic-bond/twitter-monitor.git)
 cd twitter-monitor
-pip3 install -r ./requirements.txt
+uv venv --python 3.13
+uv sync
 ```
 
 ### Prepare required tokens
 
-- Create a Telegram bot and get it's token:
+* Create a Telegram bot and get its token:
 
   https://t.me/BotFather
 
-- Unofficial Twitter account auth:
+* Unofficial Twitter account auth:
 
-    You need to prepare one or more normal twitter accounts, and then use the following command to generate auth cookies
+  You must extract auth cookies from a logged-in browser session using an extension (e.g., Get cookies.txt LOCALLY). Modify the yourusername.json with what you found in the cookies.txt.
 
-    ```bash
-    python3 main.py generate-auth-cookie --username "{username}" --password "{password}"
-    ```
+  ### Fill in config
 
-### Fill in config
+\* First, make a copy from the config templates:
 
-- First make a copy from the config templates
+* First, make a copy from the config templates:
 
   ```bash
   cp ./config/token.json.template ./config/token.json
   cp ./config/monitoring.json.template ./config/monitoring.json
   ```
 
-- Edit `config/token.json`
+* Edit `config/token.json`:
 
-  1. Fill in `telegram_bot_token`
+  1. Fill in `telegram\\\_bot\\\_token`.
+  2. Fill in `twitter\\\_auth\\\_username\\\_list` according to your prepared Twitter account auth.
+  3. Verify whether the tokens can be used by running:
 
-  2. Fill in `twitter_auth_username_list` according to your prepared Twitter account auth
-
-  3. Now you can test whether the tokens can be used by
-      ```bash
-      python3 main.py check-tokens
+  ```bash
+      uv run main.py check-tokens
       ```
 
-- Edit `config/monitoring.json`
+\* Edit `config/monitoring.json`:
 
-  (You need to fill in some telegram chat id here, you can get them from https://t.me/userinfobot and https://t.me/myidbot)
+* Edit `config/monitoring.json`:
 
-  1. If you need to view monitor health information (starting summary, daily summary, alert), fill in `maintainer_chat_id`
+  *(You need to fill in Telegram chat IDs here. You can retrieve them from https://t.me/userinfobot and https://t.me/myidbot)*
 
-  2. Fill in one or more user to `monitoring_user_list`, and their notification telegram chat id, weight, which monitors to enable. The greater the weight, the higher the query frequency. The **profile monitor** is forced to enable (because it triggers the other 3 monitors), and the other 3 monitors are free to choose whether to enable or not
+  1. If you need to view monitor health information (starting summary, daily summary, alerts), fill in `maintainer\\\_chat\\\_id`.
+  2. Fill in one or more users to `monitoring\\\_user\\\_list`, along with their notification Telegram chat ID, weight, and which monitors to enable. The greater the weight, the higher the query frequency. The **profile monitor** is forced to enable (because it triggers the tweet monitor), and the tweet monitor can be optionally enabled.
+  3. Verify if your Telegram token and chat ID are correct by running:
 
-  3. You can check if your telegram token and chat id are correct by
-      ```bash
-      python3 main.py check-tokens --telegram_chat_id {your_chat_id}
+  ```bash
+      uv run main.py check-tokens --telegram\\\_chat\\\_id {your\\\_chat\\\_id}
       ```
 
-### Run
+  ### Run
 
-```bash
-python3 main.py run
-```
-|         Flag          | Default |                        Description                        |
-| :-------------------: | :-----: | :-------------------------------------------------------: |
-|      --interval       |   15    |                   Monitor run interval                    |
-|       --confirm       |  False  |     Confirm with the maintainer during initialization     |
-| --listen_exit_command |  False  | Liten the "exit" command from telegram maintainer chat id |
-| --send_daily_summary  |  False  |         Send daily summary to telegram maintainer         |
+  Start the monitoring process:
+
+  ```bash
+uv run main.py run
+
+  uv run main.py run
+
+  ```
+
+|Flag|Default|Description|
+|:-:|:-:|:-:|
+|--interval|15|Monitor run interval|
+|--confirm|False|Confirm with the maintainer during initialization|
+|--listen\\\_exit\\\_command|False|Listen for the "exit" command from telegram maintainer chat id|
+|--send\\\_daily\\\_summary|False|Send daily summary to telegram maintainer|
 
 ## Contact me
 
-Telegram: [@ionic_bond](https://t.me/ionic_bond)
+Telegram: \[@ionic\\\_bond](https://t.me/ionic\_bond)
 
 ## Donate
 
-[PayPal Donate](https://www.paypal.com/donate/?hosted_button_id=D5DRBK9BL6DUA) or [PayPal](https://paypal.me/ionicbond3)
+\[PayPal Donate](https://www.paypal.com/donate/?hosted\_button\_id=D5DRBK9BL6DUA) or \[PayPal](https://paypal.me/ionicbond3)
+
+
