@@ -1,3 +1,6 @@
+[![Fork](https://img.shields.io/badge/Forked_From-Original_Project-lightgrey.svg)](https://github.com/ionic-bond/twitter-monitor)
+[![Modified by AI](https://img.shields.io/badge/Modified_By-Gemini-blue.svg)](https://gemini.google.com)
+> **Note:** This repository is a modified fork of [twitter-monitor](https://github.com/ionic-bond/twitter-monitor). The modifications, refactoring, and new features introduced in this fork were primarily implemented using Gemini.
 # Twitter Monitor
 
 Monitor the `tweet` and `profile` updates of an X (formerly Twitter) user and send real-time alerts to a Telegram channel.
