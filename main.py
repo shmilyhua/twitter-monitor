@@ -9,12 +9,7 @@ import click
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.schedulers.background import BlockingScheduler
 
-from cqhttp_notifier import CqhttpNotifier
-from discord_notifier import DiscordNotifier
-from following_monitor import FollowingMonitor
 from graphql_api import GraphqlAPI
-from like_monitor import LikeMonitor
-from login import login
 from monitor_base import MonitorManager
 from profile_monitor import ProfileMonitor
 from status_tracker import StatusTracker
@@ -24,11 +19,8 @@ from twitter_watcher import TwitterWatcher
 
 CONFIG_FIELD_TO_MONITOR = {
     'monitoring_profile': ProfileMonitor,
-    'monitoring_following': FollowingMonitor,
-    'monitoring_like': LikeMonitor,
     'monitoring_tweet': TweetMonitor
 }
-
 
 def _setup_logger(name: str, log_file_path: str, level=logging.INFO):
     file_handler = logging.FileHandler(log_file_path)
@@ -37,20 +29,18 @@ def _setup_logger(name: str, log_file_path: str, level=logging.INFO):
     logger.setLevel(level)
     logger.addHandler(file_handler)
 
-
 def _send_summary(telegram_chat_id: str, monitors: dict, watcher: TwitterWatcher):
-    for modoule, data in monitors.items():
+    for module, data in monitors.items():
         monitor_status = {}
         for username, monitor in data.items():
             monitor_status[username] = monitor.status()
         TelegramNotifier.put_message_into_queue(
             TelegramMessage(chat_id_list=[telegram_chat_id],
-                            text='{}: {}'.format(modoule, json.dumps(monitor_status, indent=4))))
+                            text='{}: {}'.format(module, json.dumps(monitor_status, indent=4))))
     tokens_status = watcher.check_tokens()
     TelegramNotifier.put_message_into_queue(
         TelegramMessage(chat_id_list=[telegram_chat_id],
                         text='Tokens status: {}'.format(json.dumps(tokens_status, indent=4))))
-
 
 def _check_monitors_status(telegram_token: str, telegram_chat_id: int, monitors: dict):
     alerts = StatusTracker.check()
@@ -60,7 +50,6 @@ def _check_monitors_status(telegram_token: str, telegram_chat_id: int, monitors:
     if alerts:
         send_alert(token=telegram_token, chat_id=telegram_chat_id, message='Alert: \n{}'.format('\n'.join(alerts)))
 
-
 def _check_tokens_status(telegram_token: str, telegram_chat_id: int, watcher: TwitterWatcher):
     tokens_status = watcher.check_tokens()
     failed_tokens = [token for token, status in tokens_status.items() if status == False]
@@ -69,11 +58,9 @@ def _check_tokens_status(telegram_token: str, telegram_chat_id: int, watcher: Tw
                    chat_id=telegram_chat_id,
                    message='Some tokens failed: {}'.format(json.dumps(tokens_status, indent=4)))
 
-
 @click.group()
 def cli():
     pass
-
 
 @cli.command(context_settings={'show_default': True})
 @click.option('--log_dir', default=os.path.join(sys.path[0], 'log'))
@@ -85,7 +72,7 @@ def cli():
 @click.option('--listen_exit_command',
               is_flag=True,
               default=False,
-              help="Liten the \"exit\" command from telegram maintainer chat id")
+              help="Listen the \"exit\" command from telegram maintainer chat id")
 @click.option('--send_daily_summary', is_flag=True, default=False, help="Send daily summary to telegram maintainer")
 def run(log_dir, cookies_dir, token_config_path, monitoring_config_path, interval, confirm, listen_exit_command,
         send_daily_summary):
@@ -106,11 +93,7 @@ def run(log_dir, cookies_dir, token_config_path, monitoring_config_path, interva
         assert monitoring_config['monitoring_user_list']
 
     _setup_logger('telegram', os.path.join(log_dir, 'telegram'))
-    _setup_logger('cqhttp', os.path.join(log_dir, 'cqhttp'))
-    _setup_logger('discord', os.path.join(log_dir, 'discord'))
     TelegramNotifier.init(token=telegram_bot_token, logger_name='telegram')
-    CqhttpNotifier.init(token=token_config.get('cqhttp_access_token', ''), logger_name='cqhttp')
-    DiscordNotifier.init(logger_name='discord')
 
     monitors = dict()
     for monitor_cls in CONFIG_FIELD_TO_MONITOR.values():
@@ -134,7 +117,6 @@ def run(log_dir, cookies_dir, token_config_path, monitoring_config_path, interva
     scheduler.add_job(GraphqlAPI.update_api_data, trigger='cron', hour='*')
 
     if monitoring_config['maintainer_chat_id']:
-        # maintainer_chat_id should be telegram chat id.
         maintainer_chat_id = monitoring_config['maintainer_chat_id']
         twitter_watcher = TwitterWatcher(twitter_auth_username_list, cookies_dir)
         _send_summary(maintainer_chat_id, monitors, twitter_watcher)
@@ -165,7 +147,6 @@ def run(log_dir, cookies_dir, token_config_path, monitoring_config_path, interva
 
     scheduler.start()
 
-
 @cli.command(context_settings={'show_default': True})
 @click.option('--cookies_dir', default=os.path.join(sys.path[0], 'cookies'))
 @click.option('--token_config_path', default=os.path.join(sys.path[0], 'config/token.json'))
@@ -184,22 +165,6 @@ def check_tokens(cookies_dir, token_config_path, telegram_chat_id, test_username
     if telegram_chat_id:
         TelegramNotifier.init(telegram_bot_token, '')
         TelegramNotifier.send_message(TelegramMessage(chat_id_list=[telegram_chat_id], text=result))
-
-
-@cli.command(context_settings={'show_default': True})
-@click.option('--cookies_dir', default=os.path.join(sys.path[0], 'cookies'))
-@click.option('--username', required=True)
-@click.option('--password', required=True)
-@click.option('--confirmation_code', required=False, default=None)
-def generate_auth_cookie(cookies_dir, username, password, confirmation_code):
-    os.makedirs(cookies_dir, exist_ok=True)
-    client = login(username=username, password=password, confirmation_code=confirmation_code)
-    cookies = client.cookies
-    dump_path = os.path.join(cookies_dir, '{}.json'.format(username))
-    with open(dump_path, 'w') as f:
-        f.write(json.dumps(dict(cookies), indent=2))
-    print('Saved to {}'.format(dump_path))
-
 
 if __name__ == '__main__':
     cli()
