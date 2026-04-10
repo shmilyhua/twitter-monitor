@@ -2,12 +2,9 @@ import logging
 from abc import ABC, abstractmethod
 from typing import List, Union
 
-from cqhttp_notifier import CqhttpMessage, CqhttpNotifier
-from discord_notifier import DiscordMessage, DiscordNotifier
 from status_tracker import StatusTracker
 from telegram_notifier import TelegramMessage, TelegramNotifier
 from twitter_watcher import TwitterWatcher
-
 
 class MonitorBase(ABC):
 
@@ -21,8 +18,6 @@ class MonitorBase(ABC):
         if not self.user_id:
             raise RuntimeError('Initialization error, please check if username {} exists'.format(username))
         self.telegram_chat_id_list = user_config.get('telegram_chat_id_list', None)
-        self.cqhttp_url_list = user_config.get('cqhttp_url_list', None)
-        self.discord_webhook_url_list = user_config.get('discord_webhook_url_list', None)
         self.message_prefix = '[{}][{}]'.format(username, monitor_type)
         self.update_last_watch_time()
 
@@ -52,18 +47,6 @@ class MonitorBase(ABC):
                                 text=message,
                                 photo_url_list=photo_url_list,
                                 video_url_list=video_url_list))
-        if self.cqhttp_url_list:
-            CqhttpNotifier.put_message_into_queue(
-                CqhttpMessage(url_list=self.cqhttp_url_list,
-                              text=message,
-                              photo_url_list=photo_url_list,
-                              video_url_list=video_url_list))
-        if self.discord_webhook_url_list:
-            DiscordNotifier.put_message_into_queue(
-                DiscordMessage(webhook_url_list=self.discord_webhook_url_list,
-                               text=message,
-                               photo_url_list=photo_url_list,
-                               video_url_list=video_url_list))
 
     @abstractmethod
     def watch(self) -> bool:
@@ -72,7 +55,6 @@ class MonitorBase(ABC):
     @abstractmethod
     def status(self) -> str:
         pass
-
 
 class MonitorManager():
     monitors = None
