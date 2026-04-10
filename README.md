@@ -6,7 +6,7 @@ Data is crawled directly from the X Web GraphQL API.
 
 ## Deployed channel sample
 
-https://t.me/twitter\_monitor\_menu
+https://t.me/twitter_monitor_menu
 
 ## Usage
 
@@ -17,7 +17,7 @@ https://t.me/twitter\_monitor\_menu
 Clone the repository and install dependencies using `uv` to automatically manage the virtual environment and `pyproject.toml` packages.
 
 ```bash
-git clone \\\[https://github.com/ionic-bond/twitter-monitor.git](https://github.com/ionic-bond/twitter-monitor.git)
+git clone https://github.com/shmilyhua/twitter-monitor.git
 cd twitter-monitor
 uv venv --python 3.13
 uv sync
@@ -46,13 +46,13 @@ uv sync
 
 * Edit `config/token.json`:
 
-  1. Fill in `telegram\\\_bot\\\_token`.
-  2. Fill in `twitter\\\_auth\\\_username\\\_list` according to your prepared Twitter account auth.
+  1. Fill in `telegram_bot_token`.
+  2. Fill in `twitter_auth_username_list` according to your prepared Twitter account auth.
   3. Verify whether the tokens can be used by running:
 
   ```bash
       uv run main.py check-tokens
-      ```
+  ```
 
 \* Edit `config/monitoring.json`:
 
@@ -60,20 +60,19 @@ uv sync
 
   *(You need to fill in Telegram chat IDs here. You can retrieve them from https://t.me/userinfobot and https://t.me/myidbot)*
 
-  1. If you need to view monitor health information (starting summary, daily summary, alerts), fill in `maintainer\\\_chat\\\_id`.
-  2. Fill in one or more users to `monitoring\\\_user\\\_list`, along with their notification Telegram chat ID, weight, and which monitors to enable. The greater the weight, the higher the query frequency. The **profile monitor** is forced to enable (because it triggers the tweet monitor), and the tweet monitor can be optionally enabled.
+  1. If you need to view monitor health information (starting summary, daily summary, alerts), fill in `maintainer_chat_id`.
+  2. Fill in one or more users to `monitoring_user_list`, along with their notification Telegram chat ID, weight, and which monitors to enable. The greater the weight, the higher the query frequency. The **profile monitor** is forced to enable (because it triggers the tweet monitor), and the tweet monitor can be optionally enabled.
   3. Verify if your Telegram token and chat ID are correct by running:
 
   ```bash
-      uv run main.py check-tokens --telegram\\\_chat\\\_id {your\\\_chat\\\_id}
-      ```
+      uv run main.py check-tokens --telegram_chat_id {your_chat_id}
+  ```
 
   ### Run
 
   Start the monitoring process:
 
   ```bash
-uv run main.py run
 
   uv run main.py run
 
