@@ -33,9 +33,7 @@ uv sync
 
   You must extract auth cookies from a logged-in browser session using an extension (e.g., Get cookies.txt LOCALLY). Modify the yourusername.json with what you found in the cookies.txt.
 
-  ### Fill in config
-
-\* First, make a copy from the config templates:
+### Fill in config
 
 * First, make a copy from the config templates:
 
