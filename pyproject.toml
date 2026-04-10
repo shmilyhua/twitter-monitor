@@ -1,20 +1,18 @@
 [project]
 name = "twitter-monitor"
-version = "0.1.0"
+version = "0.2.0"
 description = "A Python-based monitoring and notification system for X"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "apscheduler>=3.10.4",
     "brotli",
     "bs4",
     "click",
     "httpx",
-    "python-telegram-bot==13.15",
+    "pytelegrambotapi>=4.15.0",
     "requests",
     "retry",
-    "setuptools<81",
-    "standard-imghdr",
-    "tzlocal==2.1",
-    "urllib3<2",
+    "tzlocal",
     "xclienttransaction>=1.0.1",
 ]
