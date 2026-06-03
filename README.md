@@ -7,10 +7,6 @@ Monitor the `tweet` and `profile` updates of an X (formerly Twitter) user and se
 
 Data is crawled directly from the X Web GraphQL API.
 
-## Deployed channel sample
-
-https://t.me/twitter_monitor_menu
-
 ## Usage
 
 ### Setup
