@@ -7,3 +7,4 @@ requests
 httpx
 XClientTransaction>=1.0.1
 brotli
+setuptools<81
