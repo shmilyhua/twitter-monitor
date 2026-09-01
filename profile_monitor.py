@@ -13,57 +13,67 @@ SUB_MONITOR_LIST = [TweetMonitor]
 class ProfileParser():
 
     def __init__(self, json_response: dict):
-        self.json_response = json_response or {}
+        self.json_response = json_response
 
     @cached_property
     def name(self) -> str:
-        return (find_one(self.json_response, 'core') or {}).get('name', '')
+        return find_one(self.json_response, 'core').get('name', '')
 
     @cached_property
     def username(self) -> str:
-        return (find_one(self.json_response, 'core') or {}).get('screen_name', '')
+        return find_one(self.json_response, 'core').get('screen_name', '')
 
     @cached_property
     def location(self) -> str:
-        return (find_one(self.json_response, 'location') or {}).get('location', '')
+        # A location object typically exists even if empty, but we enforce the check.
+        location_obj = find_one(self.json_response, 'location')
+        return location_obj.get('location', '') if location_obj else ''
 
     @cached_property
     def bio(self) -> str:
-        return (find_one(self.json_response, 'profile_bio') or {}).get('description', '')
+        # Will crash with AttributeError if Twitter renames 'profile_bio'
+        return find_one(self.json_response, 'profile_bio').get('description', '')
 
     @cached_property
     def website(self) -> str:
-        profile_bio = find_one(self.json_response, 'profile_bio') or {}
-        urls = profile_bio.get('entities', {}).get('url', {}).get('urls', [])
-        return urls[0].get('expanded_url', '') if urls else ''
+        # Mirrors your original chaining logic; will crash if 'profile_bio' is missing
+        return find_one(self.json_response, 'profile_bio').get('entities', {}).get('url', {}).get('urls', [{}])[0].get('expanded_url', '')
 
     @cached_property
     def followers_count(self) -> int:
-        return (find_one(self.json_response, 'relationship_counts') or {}).get('followers', 0)
+        # Will crash with AttributeError if Twitter renames 'relationship_counts'
+        return find_one(self.json_response, 'relationship_counts').get('followers', 0)
 
     @cached_property
     def following_count(self) -> int:
-        return (find_one(self.json_response, 'relationship_counts') or {}).get('following', 0)
+        return find_one(self.json_response, 'relationship_counts').get('following', 0)
 
     @cached_property
     def like_count(self) -> int:
-        return (find_one(self.json_response, 'action_counts') or {}).get('favorites_count', 0)
+        # Will crash with AttributeError if Twitter renames 'action_counts'
+        return find_one(self.json_response, 'action_counts').get('favorites_count', 0)
 
     @cached_property
     def tweet_count(self) -> int:
-        return (find_one(self.json_response, 'tweet_counts') or {}).get('tweets', 0)
+        # Will crash with AttributeError if Twitter renames 'tweet_counts'
+        return find_one(self.json_response, 'tweet_counts').get('tweets', 0)
 
     @cached_property
     def profile_image_url(self) -> str:
-        return (find_one(self.json_response, 'avatar') or {}).get('image_url', '').replace('_normal', '')
+        return find_one(self.json_response, 'avatar').get('image_url', '').replace('_normal', '')
 
     @cached_property
     def profile_banner_url(self) -> str:
-        return (find_one(self.json_response, 'banner') or {}).get('image_url', '')
+        # Safe fallback maintained: legitimate users without a banner may omit this key entirely
+        banner = find_one(self.json_response, 'banner')
+        return banner.get('image_url', '') if banner else ''
 
     @cached_property
     def pinned_tweet(self) -> str:
-        pinned_items = find_one(self.json_response, 'pinned_items') or {}
+        # Safe fallback maintained: legitimate users without pinned tweets omit this key
+        pinned_items = find_one(self.json_response, 'pinned_items')
+        if not pinned_items:
+            return None
         pinned_tweet = pinned_items.get('tweet_ids_str', [])
         if not pinned_tweet:
             return None
@@ -73,7 +83,9 @@ class ProfileParser():
 
     @cached_property
     def highlighted_tweet_count(self) -> str:
-        return (find_one(self.json_response, 'highlights_info') or {}).get('highlighted_tweets', '0')
+        # Safe fallback maintained: legitimate users without highlights omit this key
+        highlights = find_one(self.json_response, 'highlights_info')
+        return highlights.get('highlighted_tweets', '0') if highlights else '0'
 
 
 class ElementBuffer():
