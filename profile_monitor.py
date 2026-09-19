@@ -1,106 +1,27 @@
 import time
-from functools import cached_property
-from typing import Union
 
 from monitor_base import MonitorBase, MonitorManager
 from tweet_monitor import TweetMonitor
-from utils import find_one, get_content
+from utils import ProfileParser, find_one
 
 MESSAGE_TEMPLATE = '{} changed\nOld: {}\nNew: {}'
 SUB_MONITOR_LIST = [TweetMonitor]
 
-
-class ProfileParser():
-
-    def __init__(self, json_response: dict):
-        self.json_response = json_response
-
-    @cached_property
-    def name(self) -> str:
-        return find_one(self.json_response, 'core').get('name', '')
-
-    @cached_property
-    def username(self) -> str:
-        return find_one(self.json_response, 'core').get('screen_name', '')
-
-    @cached_property
-    def location(self) -> str:
-        # A location object typically exists even if empty, but we enforce the check.
-        location_obj = find_one(self.json_response, 'location')
-        return location_obj.get('location', '') if location_obj else ''
-
-    @cached_property
-    def bio(self) -> str:
-        # Will crash with AttributeError if Twitter renames 'profile_bio'
-        return find_one(self.json_response, 'profile_bio').get('description', '')
-
-    @cached_property
-    def website(self) -> str:
-        # Mirrors your original chaining logic; will crash if 'profile_bio' is missing
-        return find_one(self.json_response, 'profile_bio').get('entities', {}).get('url', {}).get('urls', [{}])[0].get('expanded_url', '')
-
-    @cached_property
-    def followers_count(self) -> int:
-        # Will crash with AttributeError if Twitter renames 'relationship_counts'
-        return find_one(self.json_response, 'relationship_counts').get('followers', 0)
-
-    @cached_property
-    def following_count(self) -> int:
-        return find_one(self.json_response, 'relationship_counts').get('following', 0)
-
-    @cached_property
-    def like_count(self) -> int:
-        # Will crash with AttributeError if Twitter renames 'action_counts'
-        return find_one(self.json_response, 'action_counts').get('favorites_count', 0)
-
-    @cached_property
-    def tweet_count(self) -> int:
-        # Will crash with AttributeError if Twitter renames 'tweet_counts'
-        return find_one(self.json_response, 'tweet_counts').get('tweets', 0)
-
-    @cached_property
-    def profile_image_url(self) -> str:
-        return find_one(self.json_response, 'avatar').get('image_url', '').replace('_normal', '')
-
-    @cached_property
-    def profile_banner_url(self) -> str:
-        # Safe fallback maintained: legitimate users without a banner may omit this key entirely
-        banner = find_one(self.json_response, 'banner')
-        return banner.get('image_url', '') if banner else ''
-
-    @cached_property
-    def pinned_tweet(self) -> str:
-        # Safe fallback maintained: legitimate users without pinned tweets omit this key
-        pinned_items = find_one(self.json_response, 'pinned_items')
-        if not pinned_items:
-            return None
-        pinned_tweet = pinned_items.get('tweet_ids_str', [])
-        if not pinned_tweet:
-            return None
-        if isinstance(pinned_tweet, list):
-            return pinned_tweet[0]
-        return pinned_tweet
-
-    @cached_property
-    def highlighted_tweet_count(self) -> str:
-        # Safe fallback maintained: legitimate users without highlights omit this key
-        highlights = find_one(self.json_response, 'highlights_info')
-        return highlights.get('highlighted_tweets', '0') if highlights else '0'
-
-
 class ElementBuffer():
-    def __init__(self, element, change_threshold: int = 2):
+    # For handling unstable twitter API results
+
+    def __init__(self, element: object, change_threshold: int = 2) -> None:
         self.element = element
         self.change_threshold = change_threshold
         self.change_count = 0
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.element)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self.element)
 
-    def push(self, element) -> Union[dict, None]:
+    def push(self, element: object) -> dict | None:
         if element == self.element:
             self.change_count = 0
             return None
@@ -116,7 +37,7 @@ class ElementBuffer():
 class ProfileMonitor(MonitorBase):
     monitor_type = 'Profile'
 
-    def __init__(self, username: str, title: str, token_config: dict, user_config: dict, cookies_dir: str):
+    def __init__(self, username: str, title: str, token_config: dict, user_config: dict, cookies_dir: str) -> None:
         super().__init__(monitor_type=self.monitor_type,
                          username=username,
                          title=title,
@@ -153,14 +74,16 @@ class ProfileMonitor(MonitorBase):
 
         self.logger.info('Init profile monitor succeed.\n{}'.format(self.__dict__))
 
-    def get_user(self) -> Union[dict, None]:
+    def get_user(self) -> dict | None:
+        # params = {'userId': self.user_id}
+        # json_response = self.twitter_watcher.query('UserByRestId', params)
         params = {'screen_name': self.original_username}
         json_response = self.twitter_watcher.query('UserByScreenName', params)
         if not find_one(json_response, 'user'):
             return None
         return json_response
 
-    def detect_change_and_update(self, user: dict):
+    def detect_change_and_update(self, user: dict) -> None:
         parser = ProfileParser(user)
 
         result = self.name.push(parser.name)
@@ -214,7 +137,7 @@ class ProfileMonitor(MonitorBase):
         if result:
             self.send_message(message=MESSAGE_TEMPLATE.format('Highlighted tweet', result['old'], result['new']))
 
-    def watch_sub_monitor(self):
+    def watch_sub_monitor(self) -> None:
         for sub_monitor in SUB_MONITOR_LIST:
             sub_monitor_type = sub_monitor.monitor_type
             sub_monitor_instance = MonitorManager.get(monitor_type=sub_monitor_type, username=self.title)

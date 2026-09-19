@@ -14,5 +14,5 @@ dependencies = [
     "requests",
     "retry",
     "tzlocal",
-    "xclienttransaction>=1.0.1",
+    "xclienttransaction>=1.0.3",
 ]
