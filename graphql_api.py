@@ -1,5 +1,8 @@
 import logging
 import time
+import json
+import os
+import glob
 
 import bs4
 import requests
@@ -48,11 +51,50 @@ class GraphqlAPI():
     def init_client_transaction(cls) -> None:
         session = requests.Session()
         session.headers = generate_headers()
-        home_page = session.get(url="https://x.com/home")
-        home_page_response = bs4.BeautifulSoup(home_page.content, 'html.parser')
-        ondemand_file_url = get_ondemand_file_url(response=home_page_response)
+
+        cookies_dir = os.path.join(os.path.dirname(__file__), 'cookies')
+        cookie_files = glob.glob(os.path.join(cookies_dir, '*.json'))
+        
+        home_page_response = None
+        ondemand_file_url = None
+
+        for cookie_file in cookie_files:
+            try:
+                with open(cookie_file, 'r') as f:
+                    cookie_data = json.load(f)
+                    auth_token = cookie_data.get("auth_token", "")
+                    ct0 = cookie_data.get("ct0", "")
+                    
+                    if not auth_token:
+                        continue
+                        
+                    # Inject token for this attempt
+                    session.cookies.set("auth_token", auth_token, domain=".x.com")
+                    session.cookies.set("ct0", ct0, domain=".x.com")
+                    
+                    # Request the page with the current token
+                    home_page = session.get(url="https://x.com/home")
+                    home_page_response = bs4.BeautifulSoup(home_page.content, 'html.parser')
+                    
+                    # Attempt to extract the URL. If it fails, it throws an exception.
+                    ondemand_file_url = get_ondemand_file_url(response=home_page_response)
+                    
+                    # If extraction succeeds, stop searching.
+                    if ondemand_file_url:
+                        # Optional: cls.logger.info(f"Initialized successfully with {os.path.basename(cookie_file)}")
+                        break 
+                        
+            except Exception as e:
+                # cls.logger.warning(f"Token in {os.path.basename(cookie_file)} failed: {e}")
+                session.cookies.clear() # Clear bad cookies before trying the next file
+                continue
+
+        if not ondemand_file_url:
+            raise RuntimeError("All available cookie files failed or no valid tokens were found.")
+
         ondemand_file = session.get(url=ondemand_file_url)
         ondemand_file_response = bs4.BeautifulSoup(ondemand_file.content, 'html.parser')
+        
         try:
             cls.ct = ClientTransaction(home_page_response=home_page_response,
                                        ondemand_file_response=ondemand_file_response)
@@ -60,7 +102,6 @@ class GraphqlAPI():
             ondemand_file_response = ondemand_file.text
             cls.ct = ClientTransaction(home_page_response=home_page_response,
                                        ondemand_file_response=ondemand_file_response)
-
     @classmethod
     def get_clint_transaction_id(cls, method: str, url: str) -> str:
         return cls.ct.generate_transaction_id(method=method,
