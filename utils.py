@@ -6,10 +6,11 @@ from typing import Any, Callable
 from bs4 import BeautifulSoup
 
 
-def convert_html_to_text(html: str) -> str:
+def convert_html_to_text(html: str | None) -> str:
+    if not html:
+        return ''
     bs = BeautifulSoup(html, "html.parser")
     return bs.get_text()
-
 
 def get_photo_url_from_media(media: dict) -> str:
     return media.get('media_url_https', '')
