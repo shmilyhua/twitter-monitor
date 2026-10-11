@@ -54,6 +54,7 @@ def parse_text_from_tweet(tweet: dict) -> str:
     tweet_content = get_content(tweet)
     return convert_html_to_text(tweet_content.get('full_text', ''))
 
+
 def parse_username_from_tweet(tweet: dict) -> str:
     user = find_one(tweet, 'user_results')
     return find_one(user, 'rest_id')
