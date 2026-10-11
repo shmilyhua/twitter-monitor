@@ -39,21 +39,18 @@ class TelegramNotifier(NotifierBase):
     @retry(Exception, delay=10, tries=10)
     def _send_message_to_single_chat(cls, chat_id: int | str, text: str, photo_url_list: list[str] | None,
                                      video_url_list: list[str] | None) -> None:
-        
-        message_text = text[:1000] + '…' if len(text) > 1000 else text
-
         if video_url_list:
-            cls.bot.send_video(chat_id=chat_id, video=video_url_list[0], caption=message_text, timeout=60)
+            cls.bot.send_video(chat_id=chat_id, video=video_url_list[0], caption=text, timeout=60)
         elif photo_url_list:
             if len(photo_url_list) == 1:
-                cls.bot.send_photo(chat_id=chat_id, photo=photo_url_list[0], caption=message_text, timeout=60)
+                cls.bot.send_photo(chat_id=chat_id, photo=photo_url_list[0], caption=text, timeout=60)
             else:
-                media_group = [telebot.types.InputMediaPhoto(media=photo_url_list[0], caption=message_text)]
+                media_group = [telebot.types.InputMediaPhoto(media=photo_url_list[0], caption=text)]
                 for photo_url in photo_url_list[1:10]:
                     media_group.append(telebot.types.InputMediaPhoto(media=photo_url))
                 cls.bot.send_media_group(chat_id=chat_id, media=media_group, timeout=60)
         else:
-            cls.bot.send_message(chat_id=chat_id, text=message_text, disable_web_page_preview=True, timeout=60)
+            cls.bot.send_message(chat_id=chat_id, text=text, disable_web_page_preview=True, timeout=60)
 
     @classmethod
     def send_message(cls, message: TelegramMessage) -> None:
