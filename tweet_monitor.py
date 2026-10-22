@@ -89,7 +89,7 @@ class TweetMonitor(MonitorBase):
             quote = find_one(tweet_detail, 'quoted_status_result')
 
             # Safely fetch the replied-to tweet without modifying get_tweet_detail
-            reply_to_id = find_one(tweet_detail, 'in_reply_to_status_id_str')
+            reply_to_id = find_one(tweet_detail, 'in_reply_to_status_id_str', ignore_keys={'quoted_status_result', 'retweeted_status_result'})
             reply_to_tweet = None
             if reply_to_id:
                 try:
@@ -133,7 +133,7 @@ class TweetMonitor(MonitorBase):
             if len(text) > 800:
                 text = text[:800] + '…'
 
-            source = find_one(tweet_detail, 'source')
+            source = find_one(tweet_detail, 'source', ignore_keys={'quoted_status_result', 'retweeted_status_result'})
             footer = []
             
             if source:
