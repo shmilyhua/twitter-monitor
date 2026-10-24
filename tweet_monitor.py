@@ -60,6 +60,18 @@ class TweetMonitor(MonitorBase):
                 return entry
         return json_response
 
+    def _get_reply_to_tweet(self, tweet_detail: dict) -> dict | None:
+        reply_to_id = find_one(tweet_detail,
+                               'in_reply_to_status_id_str',
+                               ignore_keys={'quoted_status_result', 'retweeted_status_result'})
+        if reply_to_id:
+            try:
+                time.sleep(2)
+                return self.get_tweet_detail(reply_to_id)
+            except Exception:
+                pass
+        return None
+
     def watch(self) -> bool:
         tweet_list = self.get_tweet_list()
         if tweet_list is None:
@@ -87,17 +99,7 @@ class TweetMonitor(MonitorBase):
             tweet_detail = self.get_tweet_detail(tweet_id)
             retweet = find_one(tweet_detail, 'retweeted_status_result')
             quote = find_one(tweet_detail, 'quoted_status_result')
-
-            # Safely fetch the replied-to tweet without modifying get_tweet_detail
-            reply_to_id = find_one(tweet_detail, 'in_reply_to_status_id_str', ignore_keys={'quoted_status_result', 'retweeted_status_result'})
-            reply_to_tweet = None
-            if reply_to_id:
-                try:
-                    time.sleep(2)  # Delay to prevent rate limiting
-                    reply_to_tweet = self.get_tweet_detail(reply_to_id)
-                except Exception as e:
-                    pass # Failsafe in case the parent tweet was deleted or is inaccessible
-
+            reply_to_tweet = self._get_reply_to_tweet(tweet_detail)
             if retweet:
                 retweet_text = parse_text_from_tweet(retweet)
                 retweet_user = find_one(retweet, 'user_results')
@@ -107,44 +109,33 @@ class TweetMonitor(MonitorBase):
             else:
                 text = parse_text_from_tweet(tweet_detail)
                 photo_url_list, video_url_list = parse_media_from_tweet(tweet_detail)
-
                 if quote and reply_to_tweet:
                     if len(text) > 400:
                         text = text[:400] + '…'
                 elif quote or reply_to_tweet:
                     if len(text) > 600:
                         text = text[:600] + '…'
-
                 if quote:
                     quote_text = parse_text_from_tweet(quote)
                     quote_user = find_one(quote, 'user_results')
                     quote_username = find_one(quote_user, 'screen_name') or ''
                     text += '\n\nQuote: @{}: {}'.format(quote_username, quote_text)
-
                 if reply_to_tweet:
-                    # Limit main text space to accommodate the reply context
                     if len(text) > 600:
                         text = text[:600] + '…'
                     reply_text = parse_text_from_tweet(reply_to_tweet)
                     reply_user = find_one(reply_to_tweet, 'user_results')
                     reply_username = find_one(reply_user, 'screen_name') or ''
                     text += '\n\nReply to: @{}: {}'.format(reply_username, reply_text)
-
             if len(text) > 800:
                 text = text[:800] + '…'
-
             source = find_one(tweet_detail, 'source', ignore_keys={'quoted_status_result', 'retweeted_status_result'})
             footer = []
-            
             if source:
                 footer.append('Source: {}'.format(convert_html_to_text(source)))
-                
             tweet_link = "https://x.com/{}/status/{}".format(self.user_id, tweet_id)
             footer.append(f"Link: {tweet_link}")
-            
             text += '\n\n' + '\n'.join(footer)
-
-
             self.send_message(text, photo_url_list, video_url_list)
 
         self.update_last_watch_time()
